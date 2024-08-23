@@ -24,7 +24,7 @@ for fname in images:
     # 7x6 por el grid de la foto, el patron que tiene que encontrar
     # ret == True si encuentra el patron
     # puedo usar un patron circular, ventaja: requiere menos imagenes
-    ret, corners = cv.findChessboardCorners(gray, (7,6), None)
+    ret, corners = cv.findChessboardCorners(gray, (7,5), None)
  
     # If found, add object points, image points (after refining them)
     if ret == True:
@@ -34,7 +34,7 @@ for fname in images:
         imgpoints.append(corners2)
  
         # Draw and display the corners
-        cv.drawChessboardCorners(img, (7,6), corners2, ret)
+        cv.drawChessboardCorners(img, (7,5), corners2, ret)
         cv.imshow('img', img)
         cv.waitKey(500)
  
