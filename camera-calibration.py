@@ -6,16 +6,17 @@ import glob
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
  
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((6*7,3), np.float32)
-objp[:,:2] = np.mgrid[0:7,0:6].T.reshape(-1,2)
+objp = np.zeros((5*7,3), np.float32)
+objp[:,:2] = np.mgrid[0:7,0:5].T.reshape(-1,2)
  
 # Arrays to store object points and image points from all the images.
 objpoints = [] # 3d point in real world space
 imgpoints = [] # 2d points in image plane.
  
-images = glob.glob('*.jpg')
- 
+images = glob.glob('/workspaces/navegador/Calibracion/*.png')
+
 for fname in images:
+    
     img = cv.imread(fname)
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
  
@@ -37,6 +38,9 @@ for fname in images:
         cv.imshow('img', img)
         cv.waitKey(500)
  
+cv.destroyAllWindows()
+
+"""  
 # cchequear posicion de linea
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 
@@ -72,3 +76,5 @@ cv.imwrite('calibresult.png', dst) #guardo la img con el roi de interes
 # es necesario calcular el error? shall we?
 
 cv.destroyAllWindows()
+
+"""
