@@ -37,6 +37,8 @@ for fname in images:
         plt.imshow(img_rgb)
         plt.axis('off')
         plt.show()
+
+        # no usamos cv.imshow() porque desde VScode no deja correrlo bien, con otro IDE con GUI deberia
         # Draw and display the corners
         #cv.drawChessboardCorners(img, (8,6), corners2, ret)
         #cv.imshow('img', img)
@@ -58,8 +60,8 @@ print('newcameramtx: \n')
 print(newcameramtx)
 
 # --------- 2 formas de undistorsionar ------------ probar cual da un mejor resultado
-
-# 1)
+"""
+# 1) total error: 0.2234451935929253
 # undistort
 dst = cv.undistort(img, mtx, dist, None, newcameramtx)
  
@@ -70,8 +72,8 @@ cv.imwrite('calibresult.png', dst)
 print('dist: \n')
 print(dst)
 
-""""
-# 2)
+"""
+# 2) total error: 0.2234451935929253
 # undistort
 mapx, mapy = cv.initUndistortRectifyMap(mtx, dist, None, newcameramtx, (w,h), 5)
 dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
@@ -81,4 +83,16 @@ x, y, w, h = roi
 dst = dst[y:y+h, x:x+w]
 cv.imwrite('calibresult.png', dst) #guardo la img con el roi de interes
 
-"""
+
+# estimacion del error. muentras mas cerca de 0 este, mejor
+# no depende del metodo para undistort
+mean_error = 0
+for i in range(len(objpoints)):
+    imgpoints2, _ = cv.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
+    error = cv.norm(imgpoints[i], imgpoints2, cv.NORM_L2)/len(imgpoints2)
+    mean_error += error
+ 
+print( "total error: {}".format(mean_error/len(objpoints)) )
+
+#guardo todo en un archivo para usarlo en pose-estimation
+np.savez('B.npz', mtx=mtx, dist=dist, rvecs=rvecs, tvecs=tvecs)
