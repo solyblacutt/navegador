@@ -50,9 +50,3 @@ for fname in glob.glob('calibration/*.png'):
         new_fname = os.path.join('pose-estimation-img', name + '_processed.png')  # New file path
 
         cv.imwrite(new_fname, img)
-        #cv.imshow('img',img)
-        #k = cv.waitKey(0) & 0xFF
-        #if k == ord('s'):
-        #    cv.imwrite(fname[:6]+'.png', img)
- 
-#cv.destroyAllWindows()
