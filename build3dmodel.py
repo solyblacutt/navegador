@@ -15,7 +15,7 @@ def readCameraMatrix(filename: str):
     fs = cv2.FileStorage(filename, cv2.FILE_STORAGE_READ)
     cameraMatrix = fs.getNode("camera_matrix").mat()
     distCoeffs = fs.getNode("distortion_coefficients").mat()
-    width = int(fs.getNode("image_width").real())
+    width = int(fs.getNode("image_width").real()) 
     height = int(fs.getNode("image_height").real())
     fs.release()
 
@@ -31,7 +31,7 @@ def readModelViews(filename: str):
     imagelist = []
     roiList = []
     poseList = []
-    box = []
+    box = [] #que es box? 3dbounding box?
 
     fs = cv2.FileStorage(filename, cv2.FILE_STORAGE_READ)
     if not fs.isOpened():
@@ -72,7 +72,7 @@ def unpackPose(pose: Tuple[float, float, float, float, float, float]):
     R = cv2.Rodrigues(rvec)[0]
     return R, t
 
-def getFundamentalMat(R1, t1, R2, t2, cameraMatrix):
+def getFundamentalMat(R1, t1, R2, t2, cameraMatrix): # xq el vector es en 2d?
     R = R2 @ R1.T
     t = t2 - R @ t1
     tx, ty, tz = t[0, 0], t[1, 0], t[2, 0]
