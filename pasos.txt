@@ -1,0 +1,8 @@
+1. Sacar 20 fotos a 4 leds dispuestas en el protoboard en forma cuadrada
+2. Crear método de segmentación de leds -> tiene que ir en orden (verificar en q orden devuelve los puntos) clockwise()
+    imgp = findLeds() #segmentacion
+3. escribir array: 
+    objp = np.zeros((4,3), np.float32) 
+    objp = [(0,0,0),(1,0,0),(1,1,0),(0,1,0)]
+4. pnp de (objp, imgp)
+5. crear fx para encontrar el centro de las leds + distancia del punto
