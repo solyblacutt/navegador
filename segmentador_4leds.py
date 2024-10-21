@@ -35,22 +35,24 @@ for contour in contours:
 # Sort contours by position (optional, e.g., left to right)
 led_contours = sorted(led_contours, key=lambda c: cv2.boundingRect(c)[0])
 
+centers = []
+with open("led_centers.txt", "w") as file:
+    for contour in led_contours[:4]:  # Limit to 4 LEDs
+        ((x, y), radius) = cv2.minEnclosingCircle(contour)
+        center = (int(x), int(y))
+        #txt que se borre y agrege los 4 centros
+        file.write(f"{center[0]}, {center[1]}\n")
+        print(center)
+        radius = int(radius)
+        cv2.circle(resized_image, center, radius, (0, 255, 0), 2)
 
-for contour in led_contours[:4]:  # Limit to 4 LEDs
-    ((x, y), radius) = cv2.minEnclosingCircle(contour)
-    center = (int(x), int(y))
-    #txt que se borre y agrege los 4 centros
-    print(center)
-    radius = int(radius)
-    cv2.circle(resized_image, center, radius, (0, 255, 0), 2)
 
+        # Prepare the text for the coordinates (format: (x, y))
+        coordinates_text = f"({center[0]}, {center[1]})"
 
-    # Prepare the text for the coordinates (format: (x, y))
-    coordinates_text = f"({center[0]}, {center[1]})"
-
-    # Place the text above the circle (adjusting position as needed)
-    cv2.putText(resized_image, coordinates_text, (center[0] - 40, center[1] - radius - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
+        # Place the text above the circle (adjusting position as needed)
+        cv2.putText(resized_image, coordinates_text, (center[0] - 40, center[1] - radius - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
 
 
 
