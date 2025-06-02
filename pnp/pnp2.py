@@ -4,7 +4,7 @@ import numpy as np
 led_centers = []
 objp = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
 
-with open("led_centers.txt", "r") as f:
+with open("../led_centers.txt", "r") as f:
     for line in f:
         x, y = map(int, line.strip().split(","))
         led_centers.append((x, y))
@@ -51,6 +51,12 @@ for i, pt in enumerate(projected_points):
     x, y = pt.ravel()
     print(f"Punto {i}: ({x:.2f}, {y:.2f})")
 
+""""
+Punto 0: (106.01, 297.25)
+Punto 1: (109.88, 364.61)
+Punto 2: (181.18, 369.52)
+Punto 3: (179.93, 304.62)
+"""
 
 
 def resize_image(image, max_width=800, max_height=600):

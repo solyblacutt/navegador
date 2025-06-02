@@ -36,7 +36,7 @@ for contour in contours:
 led_contours = sorted(led_contours, key=lambda c: cv2.boundingRect(c)[0])
 
 centers = []
-with open("led_centers.txt", "w") as file:
+with open("../led_centers.txt", "w") as file:
     for contour in led_contours[:4]:  # Limit to 4 LEDs
         ((x, y), radius) = cv2.minEnclosingCircle(contour)
         center = (int(x), int(y))

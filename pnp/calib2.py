@@ -42,7 +42,7 @@ print('Coeficientes de distorsión (dist):\n', dist)
 print('Vectores de rotación (rvecs):\n', rvecs)
 
 # Leer imagen nueva para refinar calibración
-img = cv.imread('IMG_4204.png')
+img = cv.imread('../IMG_4204.png')
 h, w = img.shape[:2]
 newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
 
@@ -55,7 +55,7 @@ dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
 # Recortar ROI
 x, y, w, h = roi
 dst = dst[y:y + h, x:x + w]
-cv.imwrite('calibresult.png', dst)
+cv.imwrite('../calibresult.png', dst)
 
 # Calcular error de reproyección
 mean_error = 0
@@ -67,7 +67,7 @@ for i in range(len(objpoints)):
 print("Error total de reproyección: {:.6f}".format(mean_error / len(objpoints)))
 
 # Guardar resultados para uso posterior en estimación de pose
-np.savez('B.npz', mtx=mtx, dist=dist, rvecs=rvecs, tvecs=tvecs)
+np.savez('../B.npz', mtx=mtx, dist=dist, rvecs=rvecs, tvecs=tvecs)
 
 
 """

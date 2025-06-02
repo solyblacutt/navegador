@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Read image.
-img = cv2.imread('../test4leds.jpeg', cv2.IMREAD_COLOR)
+img = cv2.imread('../pnp/test4leds.jpeg', cv2.IMREAD_COLOR)
 
 # Convert to grayscale.
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
