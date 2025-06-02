@@ -60,3 +60,10 @@ with open("led_centers.txt", "w") as file:
 cv2.imshow('Detected LEDs', resized_image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+
+
+# (105, 295)
+# (111, 367)
+# (180, 367)
+# (181, 307)

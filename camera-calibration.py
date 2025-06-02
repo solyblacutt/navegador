@@ -1,102 +1,78 @@
+import cv2
 import numpy as np
-import cv2 as cv
-import glob
-from matplotlib import pyplot as plt
- 
-# termination criteria
-criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
- 
-# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(8,6,0)
-objp = np.zeros((6*8,3), np.float32)
-objp[:,:2] = np.mgrid[0:8,0:6].T.reshape(-1,2)
- 
-# Arrays to store object points and image points from all the images.
-objpoints = [(0,0,0), (1,0,0)] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
- 
-images = glob.glob('calibration/*.png')
+import os
 
-for fname in images:
-    
-    img = cv.imread(fname)
-    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    # Find the chess board corners
-    # 7x6 por el grid de la foto, el patron que tiene que encontrar
-    # ret == True si encuentra el patron
-    # puedo usar un patron circular, ventaja: requiere menos imagenes
-    ret, corners = cv.findChessboardCorners(gray, (8,6), None)
-    print(ret)
-    # If found, add object points, image points (after refining them)
-    if ret == True:
-        objpoints.append(objp)
-        # mejoro la precision con cornerSubPix()
-        corners2 = cv.cornerSubPix(gray,corners, (11,11), (-1,-1), criteria)
-        imgpoints.append(corners2)
- 
-        img_rgb = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-        plt.imshow(img_rgb)
-        plt.axis('off')
-        plt.show()
+# --- CONFIGURACIÓN ---
+carpeta_imagenes = "leds"  # nombre de la carpeta con las imágenes
+objp = np.array([[0, 0, 0],
+                 [1, 0, 0],
+                 [1, 1, 0],
+                 [0, 1, 0]], dtype=np.float32)
 
-        # no usamos cv.imshow() porque desde VScode no deja correrlo bien, con otro IDE con GUI deberia
-        # Draw and display the corners
-        #cv.drawChessboardCorners(img, (8,6), corners2, ret)
-        #cv.imshow('img', img)
-        #cv.waitKey(500)
- 
-#cv.destroyAllWindows()
+mtx = np.array([[2992.45904, 0, 1489.42745],
+                [0, 2979.52349, 2003.95063],
+                [0, 0, 1]], dtype=np.float32)
 
+dist = np.array([0.2433, -1.2952, -0.0025, -0.0020, 2.41], dtype=np.float32)
 
-ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-print('mtx: \n')
-print(mtx)
-print('dist: \n')
-print(dist)
-print('rvecs: \n')
-print(rvecs)
-# refino la matriz
-# left12 es una imagen nueva, no del set que paso
-img = cv.imread('IMG_4204.png')
-h,  w = img.shape[:2]
-newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
+# --- FUNCIÓN PARA DETECTAR LOS LEDS AUTOMÁTICAMENTE ---
+def detectar_leds_automaticamente(imagen):
+    gray = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    _, thresh = cv2.threshold(blurred, 240, 255, cv2.THRESH_BINARY)
 
-print('newcameramtx: \n')
-print(newcameramtx)
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:4]
 
-# --------- 2 formas de undistorsionar ------------ probar cual da un mejor resultado
-"""
-# 1) total error: 0.2234451935929253
-# undistort
-dst = cv.undistort(img, mtx, dist, None, newcameramtx)
- 
-# crop the image
-x, y, w, h = roi
-dst = dst[y:y+h, x:x+w]
-cv.imwrite('calibresult.png', dst)
-print('dist: \n')
-print(dst)
+    leds = []
+    for cnt in contours:
+        M = cv2.moments(cnt)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            leds.append((cx, cy))
 
-"""
-# 2) total error: 0.2234451935929253
-# undistort
-mapx, mapy = cv.initUndistortRectifyMap(mtx, dist, None, newcameramtx, (w,h), 5)
-dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
- 
-# crop the image
-x, y, w, h = roi
-dst = dst[y:y+h, x:x+w]
-cv.imwrite('calibresult.png', dst) #guardo la img con el roi de interes
+    # Ordenar para mantener consistencia (arriba->abajo, izquierda->derecha)
+    leds = sorted(leds, key=lambda p: (p[1], p[0]))
+    return np.array(leds, dtype=np.float32) if len(leds) == 4 else None
 
+# --- PROCESAR TODAS LAS IMÁGENES EN LA CARPETA ---
+for nombre_archivo in os.listdir(carpeta_imagenes):
+    if not nombre_archivo.lower().endswith(('.jpg', '.jpeg', '.png')):
+        continue
 
-# estimacion del error. muentras mas cerca de 0 este, mejor
-# no depende del metodo para undistort
-mean_error = 0
-for i in range(len(objpoints)):
-    imgpoints2, _ = cv.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
-    error = cv.norm(imgpoints[i], imgpoints2, cv.NORM_L2)/len(imgpoints2)
-    mean_error += error
- 
-print( "total error: {}".format(mean_error/len(objpoints)) )
+    ruta = os.path.join(carpeta_imagenes, nombre_archivo)
+    imagen = cv2.imread(ruta)
+    if imagen is None:
+        print(f"No se pudo cargar: {nombre_archivo}")
+        continue
 
-#guardo todo en un archivo para usarlo en pose-estimation
-np.savez('B.npz', mtx=mtx, dist=dist, rvecs=rvecs, tvecs=tvecs)
+    led_centers = detectar_leds_automaticamente(imagen)
+
+    if led_centers is None:
+        print(f"No se detectaron 4 LEDs en: {nombre_archivo}")
+        continue
+
+    # Resolver PnP y proyectar puntos
+    ret, rvecs, tvecs = cv2.solvePnP(objp, led_centers, mtx, dist)
+    projected_points, _ = cv2.projectPoints(objp, rvecs, tvecs, mtx, dist)
+
+    for pt in projected_points:
+        x, y = pt.ravel()
+        cv2.circle(imagen, (int(x), int(y)), 8, (0, 255, 0), -1)
+        cv2.putText(imagen, f"{int(x)},{int(y)}", (int(x) + 10, int(y) - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+    # Dibujar el centroide
+    centroide_3d = np.mean(objp, axis=0).reshape(1, 3)
+    centroide_2d, _ = cv2.projectPoints(centroide_3d, rvecs, tvecs, mtx, dist)
+    cx, cy = centroide_2d.ravel()
+    cv2.circle(imagen, (int(cx), int(cy)), 10, (0, 0, 0), -1)
+    cv2.putText(imagen, "Centro", (int(cx) + 10, int(cy) - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+
+    # Mostrar imagen con proyecciones
+    cv2.imshow("Resultado", imagen)
+    cv2.waitKey(0)
+
+cv2.destroyAllWindows()
