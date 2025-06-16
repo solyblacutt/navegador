@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 # --- CONFIGURACIÓN ---
-carpeta_imagenes = "leds"  # nombre de la carpeta con las imágenes
+carpeta_imagenes = "pnp/leds"  # nombre de la carpeta con las imágenes
 objp = np.array([[0, 0, 0],
                  [1, 0, 0],
                  [1, 1, 0],
@@ -33,7 +33,12 @@ def detectar_leds_automaticamente(imagen):
             leds.append((cx, cy))
 
     # Ordenar para mantener consistencia (arriba->abajo, izquierda->derecha)
-    leds = sorted(leds, key=lambda p: (p[1], p[0]))
+    # Ordenar consistentemente en sentido horario desde el punto superior izquierdo
+    leds = np.array(leds, dtype=np.float32)
+    c = np.mean(leds, axis=0)
+    angles = np.arctan2(leds[:, 1] - c[1], leds[:, 0] - c[0])
+    leds = leds[np.argsort(angles)]
+
     return np.array(leds, dtype=np.float32) if len(leds) == 4 else None
 
 # --- PROCESAR TODAS LAS IMÁGENES EN LA CARPETA ---
@@ -53,8 +58,12 @@ for nombre_archivo in os.listdir(carpeta_imagenes):
         print(f"No se detectaron 4 LEDs en: {nombre_archivo}")
         continue
 
+
     # Resolver PnP y proyectar puntos
     ret, rvecs, tvecs = cv2.solvePnP(objp, led_centers, mtx, dist)
+    if not ret:
+        print(f"No se pudo resolver PnP en {nombre_archivo}")
+        continue
     projected_points, _ = cv2.projectPoints(objp, rvecs, tvecs, mtx, dist)
 
     for pt in projected_points:
@@ -67,12 +76,33 @@ for nombre_archivo in os.listdir(carpeta_imagenes):
     centroide_3d = np.mean(objp, axis=0).reshape(1, 3)
     centroide_2d, _ = cv2.projectPoints(centroide_3d, rvecs, tvecs, mtx, dist)
     cx, cy = centroide_2d.ravel()
+    cx = cx.item()
+    cy = cy.item()
+
+    if not np.all(np.isfinite(centroide_2d)):
+        print(f"Centroide proyectado inválido: {centroide_2d}")
+        continue
+
+    print(f"Tipo de imagen: {type(imagen)}, shape: {imagen.shape}")
+    print(f"Centroide proyectado: cx={cx}, cy={cy}, tipo: {type(cx)}, {type(cy)}")
+    print(f"Centroide int: {int(cx)}, {int(cy)}")
+
     cv2.circle(imagen, (int(cx), int(cy)), 10, (0, 0, 0), -1)
     cv2.putText(imagen, "Centro", (int(cx) + 10, int(cy) - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
 
+    # Escalar imagen si es demasiado grande
+    max_dim = 1000  # ancho o alto máximo para visualizar
+    alto, ancho = imagen.shape[:2]
+
+    if max(alto, ancho) > max_dim:
+        escala = max_dim / max(alto, ancho)
+        imagen_mostrar = cv2.resize(imagen, (int(ancho * escala), int(alto * escala)))
+    else:
+        imagen_mostrar = imagen
+
     # Mostrar imagen con proyecciones
-    cv2.imshow("Resultado", imagen)
+    cv2.imshow("Resultado", imagen_mostrar)
     cv2.waitKey(0)
 
 cv2.destroyAllWindows()
