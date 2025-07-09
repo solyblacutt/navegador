@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import os
 
 # Load previously saved data
-with np.load('B.npz') as X:
+with np.load('../B.npz') as X:
     mtx, dist, _, _ = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
 
 def draw(img, corners, imgpts):

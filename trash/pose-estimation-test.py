@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import os
 
 # Load previously saved data
-with np.load('B.npz') as X:
+with np.load('../B.npz') as X:
     mtx, dist, _, _ = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
 
 # hablar con silvestri tema de 4 ptos o palpeador (1 pto)

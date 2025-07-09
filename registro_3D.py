@@ -7,7 +7,7 @@ mesh_modelo.compute_vertex_normals()
 mesh_modelo.paint_uniform_color([0.8, 0.8, 0.8])
 
 # Cargar puntos del modelo STL (por ejemplo, desde un .csv exportado de Slicer)
-puntos_modelo = np.loadtxt("Table.csv", delimiter=",", skiprows=1, usecols=(1,2,3))
+puntos_modelo = np.loadtxt("Table.csv", delimiter=",", skiprows=1, usecols=(1, 2, 3))
 
 # Cargar puntos del sistema de cámara (calculados desde solvePnP)
 puntos_camara = np.loadtxt("puntos_3d_en_camara.csv", delimiter=",", skiprows=1)

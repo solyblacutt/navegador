@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import os
 
+#EN CONSTRUCCION
+
 # --- CONFIGURACIÓN ---
 carpeta_imagenes = "pnp/leds"  # nombre de la carpeta con las imágenes
 objp = np.array([[0, 0, 0],
