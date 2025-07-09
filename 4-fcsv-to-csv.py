@@ -1,6 +1,9 @@
 import csv
 import os
 
+# en fcsv_files estan puntos de referencia extraidos de femur.stl
+# tomo 2 del tuberculo mayor y uno del tuberculo menor
+
 # Carpeta donde están los .fcsv
 carpeta = "fcsv_files"  # cambiala si hace falta
 archivos = [f for f in os.listdir(carpeta) if f.endswith(".fcsv")]

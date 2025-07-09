@@ -1,6 +1,10 @@
 import cv2
 import numpy as np
 
+# este es el codigo general que deberia correrse para ver el video de la deteccion del beacon en vivo.
+# si quiero marcar un punto de la anatomia del paciente, como para la calibracion por 3 puntos, tambien los guarda
+# para su procesamiento posterior en 5-registro-3D.py
+
 # --- Parámetros de la cámara y objeto ---
 objp = np.array([[0, 0, 0],
                  [1, 0, 0],

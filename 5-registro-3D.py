@@ -2,7 +2,7 @@ import open3d as o3d
 import numpy as np
 
 # --- Crear modelo STL sintético (cubo) ---
-mesh_modelo = o3d.io.read_triangle_mesh("Segmentation_Segment_3_femur.stl")
+mesh_modelo = o3d.io.read_triangle_mesh("femur.stl")
 mesh_modelo.compute_vertex_normals()
 mesh_modelo.paint_uniform_color([0.8, 0.8, 0.8])
 
