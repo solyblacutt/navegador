@@ -4,7 +4,7 @@ import numpy as np
 led_centers = []
 objp = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
 
-with open("../led_centers.txt", "r") as f:
+with open("../../led_centers.txt", "r") as f:
     for line in f:
         x, y = map(int, line.strip().split(","))
         led_centers.append((x, y))

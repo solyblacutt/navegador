@@ -2,30 +2,37 @@ import cv2
 import numpy as np
 import os
 
-#EN CONSTRUCCION
+# EN CONSTRUCCION - archivo general
 
 # --- CONFIGURACIÓN ---
 carpeta_imagenes = "pnp/leds"  # nombre de la carpeta con las imágenes
+
+# coordenadas 3d conocidas de las LEDs en el sistema del objeto
 objp = np.array([[0, 0, 0],
                  [1, 0, 0],
                  [1, 1, 0],
                  [0, 1, 0]], dtype=np.float32)
 
+
+# parametros intrinsecos de la camara obtenidos de otra clase calibracion
 mtx = np.array([[2992.45904, 0, 1489.42745],
                 [0, 2979.52349, 2003.95063],
                 [0, 0, 1]], dtype=np.float32)
 
 dist = np.array([0.2433, -1.2952, -0.0025, -0.0020, 2.41], dtype=np.float32)
 
+# creo metodo para detectar leds x contraste
 # --- FUNCIÓN PARA DETECTAR LOS LEDS AUTOMÁTICAMENTE ---
 def detectar_leds_automaticamente(imagen):
     gray = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     _, thresh = cv2.threshold(blurred, 240, 255, cv2.THRESH_BINARY)
 
+    # detecta contorno
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:4]
 
+    # calculo centroides de los contornos
     leds = []
     for cnt in contours:
         M = cv2.moments(cnt)
@@ -35,13 +42,14 @@ def detectar_leds_automaticamente(imagen):
             leds.append((cx, cy))
 
     # Ordenar para mantener consistencia (arriba->abajo, izquierda->derecha)
-    # Ordenar consistentemente en sentido horario desde el punto superior izquierdo
+    # Ordenar consistentemente en sentido antihorario de la camara,  desde el punto superior izquierdo
+    # permite estandarizar secuencia de leds
     leds = np.array(leds, dtype=np.float32)
-    c = np.mean(leds, axis=0)
-    angles = np.arctan2(leds[:, 1] - c[1], leds[:, 0] - c[0])
-    leds = leds[np.argsort(angles)]
+    c = np.mean(leds, axis=0) # calculo el centro geometrico de los leds
+    angles = np.arctan2(leds[:, 1] - c[1], leds[:, 0] - c[0]) # calculo angulo [pi,-pi]
+    leds = leds[np.argsort(angles)] #organizo leds por su angulo
 
-    return np.array(leds, dtype=np.float32) if len(leds) == 4 else None
+    return np.array(leds, dtype=np.float32) if len(leds) == 4 else None # condicion tener 4 leds!!!
 
 # --- PROCESAR TODAS LAS IMÁGENES EN LA CARPETA ---
 for nombre_archivo in os.listdir(carpeta_imagenes):
@@ -66,6 +74,7 @@ for nombre_archivo in os.listdir(carpeta_imagenes):
     if not ret:
         print(f"No se pudo resolver PnP en {nombre_archivo}")
         continue
+    # proyecto los puntos 3D en las coordenadas 2D de la imagen
     projected_points, _ = cv2.projectPoints(objp, rvecs, tvecs, mtx, dist)
 
     for pt in projected_points:
@@ -97,6 +106,7 @@ for nombre_archivo in os.listdir(carpeta_imagenes):
     max_dim = 1000  # ancho o alto máximo para visualizar
     alto, ancho = imagen.shape[:2]
 
+    # redimensiono la imagen si es que es muy grande
     if max(alto, ancho) > max_dim:
         escala = max_dim / max(alto, ancho)
         imagen_mostrar = cv2.resize(imagen, (int(ancho * escala), int(alto * escala)))
