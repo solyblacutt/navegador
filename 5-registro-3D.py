@@ -1,6 +1,8 @@
 import open3d as o3d
 import numpy as np
 
+# alineo el modelo stl con el de los puntos capturados por la camara
+
 # --- Crear modelo STL sintético (cubo) ---
 mesh_modelo = o3d.io.read_triangle_mesh("femur.stl")
 mesh_modelo.compute_vertex_normals()
@@ -23,10 +25,14 @@ pcd_camara.paint_uniform_color([1, 0, 0])
 
 # Estimar transformación (registro)
 threshold = 10.0  # mm
+# --- ICP con estimación de escala ---
 reg_p2p = o3d.pipelines.registration.registration_icp(
     pcd_camara, pcd_modelo, threshold, np.eye(4),
     o3d.pipelines.registration.TransformationEstimationPointToPoint()
 )
+
+# Persistir la transformación para uso en tiempo real
+np.save("cam_to_model.npy", reg_p2p.transformation)
 
 # Transformar los puntos de cámara
 pcd_camara_alineado = pcd_camara.transform(reg_p2p.transformation)
