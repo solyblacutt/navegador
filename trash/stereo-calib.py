@@ -77,7 +77,7 @@ def StereoCalib(imagelist, boardSize, useCalibrated=True, showRectified=True):
     print(f"{len(goodImageList)//2} pairs have been successfully detected.")
     nimages = len(goodImageList) // 2
     if nimages < 2:
-        print("Error: too few pairs to run the calibration")
+        print("Error: too few pairs to run the calibrationCelu")
         return
 
     objectPoints = np.zeros((nimages, boardSize.height * boardSize.width, 3), np.float32)
@@ -85,7 +85,7 @@ def StereoCalib(imagelist, boardSize, useCalibrated=True, showRectified=True):
     objectPoints *= squareSize
     objectPoints = [objectPoints] * nimages
 
-    print("Running stereo calibration ...")
+    print("Running stereo calibrationCelu ...")
 
     cameraMatrix = [np.eye(3, 3, dtype=np.float64) for _ in range(2)]
     distCoeffs = [None, None]
@@ -104,7 +104,7 @@ def StereoCalib(imagelist, boardSize, useCalibrated=True, showRectified=True):
     # Calibration quality check
     # because the output fundamental matrix implicitly
     # includes all the output information,
-    # we can check the quality of calibration using the
+    # we can check the quality of calibrationCelu using the
     # epipolar geometry constraint: m2^t*F*m1=0
     err = 0
     npoints = 0

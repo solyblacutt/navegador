@@ -14,7 +14,7 @@ objpoints = []  # puntos 3D reales
 imgpoints = []  # puntos 2D detectados en las imágenes
 
 # Cargar todas las imágenes de calibración
-images = glob.glob('calibration/*.png')
+images = glob.glob('calibrationCelu/*.png')
 
 for fname in images:
     img = cv.imread(fname)

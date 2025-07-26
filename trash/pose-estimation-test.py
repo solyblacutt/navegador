@@ -29,7 +29,7 @@ axis = np.float32([[3,0,0], [0,3,0], [0,0,-3]]).reshape(-1,3)
 
 
 #iterar fps de un video
-for fname in glob.glob('calibration/*.png'):
+for fname in glob.glob('calibrationCelu/*.png'):
     img = cv.imread(fname)
     gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
