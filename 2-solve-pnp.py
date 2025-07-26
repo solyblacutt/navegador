@@ -15,12 +15,12 @@ objp = np.array([[0, 0, 0],
 
 
 # parametros intrinsecos de la camara obtenidos de otra clase calibracion
-mtx = np.array([[2992.45904, 0, 1489.42745],
-                [0, 2979.52349, 2003.95063],
-                [0, 0, 1]], dtype=np.float32)
+mtx = np.array([[1.23994321e+03, 0.00000000e+00, 9.42066048e+02],
+ [0.00000000e+00, 1.24162269e+03, 5.16545687e+02],
+ [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]], dtype=np.float32)
 
-dist = np.array([0.2433, -1.2952, -0.0025, -0.0020, 2.41], dtype=np.float32)
-
+dist = np.array([ 0.02489004,  0.12455246, -0.01055148,  0.00068239,  0.14485304], dtype=np.float32)
+"""
 # creo metodo para detectar leds x contraste
 # --- FUNCIÓN PARA DETECTAR LOS LEDS AUTOMÁTICAMENTE ---
 def detectar_leds_automaticamente(imagen):
@@ -51,6 +51,75 @@ def detectar_leds_automaticamente(imagen):
 
     return np.array(leds, dtype=np.float32) if len(leds) == 4 else None # condicion tener 4 leds!!!
 
+
+
+"""
+
+# ---------- rangos HSV de colores ----------
+R_H_LOW  = np.array([  0,  80, 120])   # rojo: zona baja   H 0-10
+R_H_HIGH = np.array([ 10, 255,255])
+R2_H_LOW = np.array([170, 80, 120])    # rojo: zona alta  H 170-180
+R2_H_HIGH= np.array([180,255,255])
+
+Y_H_LOW  = np.array([ 20, 80, 120])    # amarillo
+Y_H_HIGH = np.array([ 35,255,255])
+
+G_H_LOW  = np.array([ 55, 40, 55])    # verde
+G_H_HIGH = np.array([ 85,255,255])
+
+def _clasifica_color(hsv_val):
+    h,s,v = hsv_val
+    if ((R_H_LOW<=hsv_val).all()  and (hsv_val<=R_H_HIGH).all()) \
+    or ((R2_H_LOW<=hsv_val).all() and (hsv_val<=R2_H_HIGH).all()):
+        return "rojo"
+    if (Y_H_LOW<=hsv_val).all() and (hsv_val<=Y_H_HIGH).all():
+        return "amarillo"
+    if (G_H_LOW<=hsv_val).all() and (hsv_val<=G_H_HIGH).all():
+        return "verde"
+    return "otro"
+
+# ---------- detección por contorno + clasificación HSV ----------
+def detectar_leds_contorno_color(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blur = cv2.GaussianBlur(gray, (5,5), 0)
+
+    # Otsu para binarizar las zonas brillantes
+    _, thr = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+
+    # limpiar ruido
+    thr = cv2.morphologyEx(thr, cv2.MORPH_OPEN, np.ones((3,3), np.uint8), 1)
+
+    cnts,_ = cv2.findContours(thr, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts   = sorted(cnts, key=cv2.contourArea, reverse=True)[:4]
+
+    if len(cnts) != 4:
+        return None          # detección incompleta
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    leds_dict = {"verde":[], "amarillo":[], "rojo":[]}
+
+    for c in cnts:
+        m = cv2.moments(c)
+        if m["m00"] == 0:
+            continue
+        cx = int(m["m10"]/m["m00"])
+        cy = int(m["m01"]/m["m00"])
+        color = _clasifica_color(hsv[cy, cx])
+        if color in leds_dict:
+            leds_dict[color].append((cx, cy))
+
+    # necesitamos 1 verde, 1 amarillo y 2 rojos
+    if not (len(leds_dict["verde"])==1 and len(leds_dict["amarillo"])==1 and len(leds_dict["rojo"])==2):
+        return None
+
+    # ordenar los 2 rojos de izquierda a derecha
+    leds_dict["rojo"].sort(key=lambda p: p[0])
+
+    # construir orden final:  verde → amarillo → rojo izq → rojo der
+    orden = leds_dict["verde"] + leds_dict["amarillo"] + leds_dict["rojo"]
+    return np.array(orden, dtype=np.float32)
+
+
 # --- PROCESAR TODAS LAS IMÁGENES EN LA CARPETA ---
 for nombre_archivo in os.listdir(carpeta_imagenes):
     if not nombre_archivo.lower().endswith(('.jpg', '.jpeg', '.png')):
@@ -62,7 +131,7 @@ for nombre_archivo in os.listdir(carpeta_imagenes):
         print(f"No se pudo cargar: {nombre_archivo}")
         continue
 
-    led_centers = detectar_leds_automaticamente(imagen)
+    led_centers = detectar_leds_contorno_color(imagen)
 
     if led_centers is None:
         print(f"No se detectaron 4 LEDs en: {nombre_archivo}")
