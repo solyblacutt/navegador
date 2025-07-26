@@ -14,7 +14,7 @@ objpoints = []  # puntos 3D reales
 imgpoints = []  # puntos 2D detectados en las imágenes
 
 # Cargar todas las imágenes de calibración
-images = glob.glob('calibrationCelu/*.png')
+images = glob.glob('calibrationCompuSol/*.jpg')
 
 for fname in images:
     img = cv.imread(fname)
@@ -42,7 +42,8 @@ print('Coeficientes de distorsión (dist):\n', dist)
 print('Vectores de rotación (rvecs):\n', rvecs)
 
 # Leer imagen nueva para refinar calibración
-img = cv.imread('IMG_4204.png')
+#img = cv.imread('IMG_4204.png')
+img = cv.imread('WIN_20250726_11_31_51_Pro.jpg')
 h, w = img.shape[:2]
 newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
 

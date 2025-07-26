@@ -75,8 +75,8 @@ while True:
             # Calcular el centroide 3D y mostrarlo
             centroide_3d = np.mean(objp, axis=0).reshape(1, 3)
             centroide_camara = (cv2.Rodrigues(rvecs)[0] @ centroide_3d.T + tvecs).T[0]
-            #punzon_obj = np.array([[-50, 10, 0]], dtype=np.float32)
-            #punzon_camara = (cv2.Rodrigues(rvecs)[0] @ punzon_obj.T + tvecs).T[0]
+            punzon_obj = np.array([[-50, 10, 0]], dtype=np.float32)
+            punzon_camara = (cv2.Rodrigues(rvecs)[0] @ punzon_obj.T + tvecs).T[0]
 
             # Dibujar centro proyectado
             centroide_2d, _ = cv2.projectPoints(centroide_3d, rvecs, tvecs, mtx, dist)
@@ -86,13 +86,13 @@ while True:
                 cv2.putText(frame, "Centro", (int(cx)+10, int(cy)-10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
-            #punzon_2d, _ = cv2.projectPoints(punzon_obj, rvecs, tvecs, mtx, dist)
-            #px, py = punzon_2d.ravel()
+            punzon_2d, _ = cv2.projectPoints(punzon_obj, rvecs, tvecs, mtx, dist)
+            px, py = punzon_2d.ravel()
 
-            #if np.all(np.isfinite([px, py])):
-            #    cv2.circle(frame, (int(px), int(py)), 8, (255, 0, 255), -1)
-            #    cv2.putText(frame, f"{int(px)}, {int(py)}", (int(px) + 10, int(py) - 10),
-            #                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
+            if np.all(np.isfinite([px, py])):
+                cv2.circle(frame, (int(px), int(py)), 8, (255, 0, 255), -1)
+                cv2.putText(frame, f"{int(px)}, {int(py)}", (int(px) + 10, int(py) - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
 
     # Mostrar video
     cv2.imshow("PnP en vivo", frame)
