@@ -4,7 +4,7 @@ import numpy as np
 # alineo el modelo stl con el de los puntos capturados por la camara
 
 # --- Crear modelo STL sintético (cubo) ---
-mesh_modelo = o3d.io.read_triangle_mesh("femur.stl")
+mesh_modelo = o3d.io.read_triangle_mesh("caja ejemplo v1.stl")
 mesh_modelo.compute_vertex_normals()
 mesh_modelo.paint_uniform_color([0.8, 0.8, 0.8])
 

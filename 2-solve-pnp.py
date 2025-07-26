@@ -2,16 +2,16 @@ import cv2
 import numpy as np
 import os
 
-# EN CONSTRUCCION - archivo general
+# EN CONSTRUCCION - archivo general, son las bases del video en loop
 
 # --- CONFIGURACIÓN ---
-carpeta_imagenes = "pnp/leds"  # nombre de la carpeta con las imágenes
+carpeta_imagenes = "trash/pnp/leds"  # nombre de la carpeta con las imágenes
 
 # coordenadas 3d conocidas de las LEDs en el sistema del objeto
 objp = np.array([[0, 0, 0],
-                 [1, 0, 0],
-                 [1, 1, 0],
-                 [0, 1, 0]], dtype=np.float32)
+                 [2, 0, 0],
+                 [2, 2, 0],
+                 [0, 2, 0]], dtype=np.float32)
 
 
 # parametros intrinsecos de la camara obtenidos de otra clase calibracion
@@ -101,6 +101,18 @@ for nombre_archivo in os.listdir(carpeta_imagenes):
     cv2.circle(imagen, (int(cx), int(cy)), 10, (0, 0, 0), -1)
     cv2.putText(imagen, "Centro", (int(cx) + 10, int(cy) - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+
+    # --- DIBUJAR EL PUNTO (-5, 1, 0) EN EL SISTEMA DEL OBJETO ---
+    punto_punzon_obj = np.array([[-5, 1, 0]], dtype=np.float32)
+    punto_punzon_2d, _ = cv2.projectPoints(punto_punzon_obj, rvecs, tvecs, mtx, dist)
+
+    x_punzon, y_punzon = punto_punzon_2d.ravel()
+    x_punzon = x_punzon.item()
+    y_punzon = y_punzon.item()
+
+    cv2.circle(imagen, (int(x_punzon), int(y_punzon)), 10, (255, 0, 255), -1)
+    cv2.putText(imagen, f"{int(x_punzon)}, {int(y_punzon)}", (int(x_punzon) + 10, int(y_punzon) - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
 
     # Escalar imagen si es demasiado grande
     max_dim = 1000  # ancho o alto máximo para visualizar
