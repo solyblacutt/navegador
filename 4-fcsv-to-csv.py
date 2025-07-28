@@ -5,7 +5,7 @@ import os
 # tomo 2 del tuberculo mayor y uno del tuberculo menor
 
 # Carpeta donde están los .fcsv
-carpeta = "fcsv_files_caja"  # cambiala si hace falta
+carpeta = "fcsv_files"  # cambiala si hace falta
 archivos = [f for f in os.listdir(carpeta) if f.endswith(".fcsv")]
 
 # Archivo de salida

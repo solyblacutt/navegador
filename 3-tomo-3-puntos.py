@@ -16,7 +16,7 @@ mtx = np.array([[1.23994321e+03, 0.00000000e+00, 9.42066048e+02],
 
 dist = np.array([ 0.02489004,  0.12455246, -0.01055148,  0.00068239,  0.14485304], dtype=np.float32)
 
-# --- Almacenamiento de puntos seleccionados ---
+# --- Almacenamieto de puntos seleccionados ---
 puntos_guardados = []
 
 # --- Función para detectar LEDs ---
@@ -64,8 +64,9 @@ while True:
 
     led_centers = detectar_leds_automaticamente(frame)
     if led_centers is not None:
-        ret, rvecs, tvecs = cv2.solvePnP(objp, led_centers, mtx, dist)
-        if ret:
+        #ret, rvecs, tvecs = cv2.solvePnP(objp, led_centers, mtx, dist)
+        ret, rvecs, tvecs, inliers = cv2.solvePnPRansac( objp, led_centers, mtx, dist, reprojectionError=8.0, confidence=0.99, flags=cv2.SOLVEPNP_ITERATIVE)
+        if ret and inliers is not None and len(inliers) >= 4:
             # Dibujar puntos proyectados
             projected_points, _ = cv2.projectPoints(objp, rvecs, tvecs, mtx, dist)
             for pt in projected_points:
