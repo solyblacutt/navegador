@@ -9,9 +9,9 @@ import numpy as np
 # Verde (0,0), Rojo (20,0), Rojo (20,20), Amarillo (0,20)
 objp = np.array([
     [0, 0, 0],      # LED VERDE
-    [20, 0, 0],     # LED VERDE
-    [20, 20, 0],    # LED ROJO
-    [0, 20, 0]      # LED ROJO
+    [150, 0, 0],     # LED VERDE
+    [150, 150, 0],    # LED ROJO
+    [0, 150, 0]      # LED ROJO
 ], dtype=np.float32)
 
 
@@ -28,14 +28,15 @@ puntos_guardados = []
 tracking_leds = {
     "verde1": None,
     "verde2": None,
-    "rojo1": None,
-    "rojo2": None
+    "azul1": None,
+    "azul2": None
 }
 MAX_DIST_PIXEL = 50  # Distancia máxima permitida frame a frame para tracking
 
 
-def validar_angulos_cuadrado(pts, tol=10):
-    """Valida que los ángulos entre lados consecutivos estén cerca de 90 grados (±tol)."""
+# probar sin esto, da mejor? por el angulo de giro
+"""def validar_angulos_cuadrado(pts, tol=10):
+    #Valida que los ángulos entre lados consecutivos estén cerca de 90 grados (±tol).
 
     def angulo(v1, v2):
         cos_ang = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
@@ -50,9 +51,9 @@ def validar_angulos_cuadrado(pts, tol=10):
         if not (90 - tol <= a <= 90 + tol):
             return False
     return True
+"""
 
-
-def validar_escala_cuadrado(pts, escala_mm=20, tol_px=15):
+def validar_escala_cuadrado(pts, escala_mm=150, tol_px=15):
     """Valida escala según distancias entre lados comparadas con la escala esperada."""
     pts = np.array(pts)
     d01 = np.linalg.norm(pts[0] - pts[1])
@@ -71,7 +72,8 @@ def validar_escala_cuadrado(pts, escala_mm=20, tol_px=15):
     return True
 
 
-def actualizar_tracker(nuevos_puntos, colores=["verde1", "verde2", "rojo1", "rojo2"]):
+# ver bien que hace esto
+def actualizar_tracker(nuevos_puntos, colores=["verde1", "verde2", "azul1", "azul2"]):
     global tracking_leds
     nuevos_puntos = dict(zip(colores, nuevos_puntos))
     for color, nuevo_pt in nuevos_puntos.items():
@@ -110,13 +112,13 @@ def detectar_leds_por_color(imagen, roi=None):
 
     hsv = cv2.cvtColor(imagen_roi, cv2.COLOR_BGR2HSV)
     rangos = {
-        "verde1": ([45, 80, 80], [85, 255, 255]),
-        "verde2": ([0, 80, 80], [10, 255, 255]),
-        "rojo1": ([170, 80, 80], [180, 255, 255]),
-        "rojo2": ([20, 80, 80], [35, 255, 255])
+        "verde1": ([60, 76, 255], [135, 255, 255]),
+        "verde2": ([60, 76, 255], [135, 255, 255]),
+        "azul1": ([180, 65, 255], [260, 255, 255]),  # rango de azul (ajusta según tus LEDs)
+        "azul2": ([180, 65, 255], [260, 255, 255])   # igual que azul1
     }
     centros_verde = []
-    centros_rojo = []
+    centros_azul = []
 
     for color, (bajo, alto) in rangos.items():
         mascara = cv2.inRange(hsv, np.array(bajo), np.array(alto))
@@ -131,20 +133,20 @@ def detectar_leds_por_color(imagen, roi=None):
 
                 if color == "verde":
                     centros_verde.append((cx, cy))
-                elif color.startswith("rojo"):
-                    centros_rojo.append((cx, cy))
+                elif color.startswith("azul"):
+                    centros_azul.append((cx, cy))
                 # no considers amarillo ya
 
                 # Para tomar solo 2 maximos verdes y rojos:
-                if len(centros_verde) >= 2 and len(centros_rojo) >= 2:
+                if len(centros_verde) >= 2 and len(centros_azul) >= 2:
                     break
 
-    if len(centros_verde) == 2 and len(centros_rojo) == 2:
+    if len(centros_verde) == 2 and len(centros_azul) == 2:
         # Ordenar verdes y rojos para que coincidan en un orden coherente (e.g. por X)
         centros_verde = sorted(centros_verde, key=lambda p: (p[1], p[0]))  # ordenar por Y, luego X
-        centros_rojo = sorted(centros_rojo, key=lambda p: (p[1], p[0]))
+        centros_azul = sorted(centros_azul, key=lambda p: (p[1], p[0]))
 
-        leds = [centros_verde[0], centros_verde[1], centros_rojo[0], centros_rojo[1]]
+        leds = [centros_verde[0], centros_verde[1], centros_azul[0], centros_azul[1]]
         return np.array(leds, dtype=np.float32)
     else:
         return None
@@ -181,7 +183,7 @@ def detectar_leds_por_brillo(imagen):
     else:
         return None
 
-
+# ver si sacar esto
 def ordenar_puntos_en_cuadro(puntos):
     if len(puntos) != 4:
         return None
@@ -258,13 +260,13 @@ while True:
     # Usamos roi para acotar búsqueda si está disponible
     led_centers = detectar_leds_por_color(frame, roi=roi)
 
-    if led_centers is None:
-        led_centers = detectar_leds_por_brillo(frame)  # podría también modificarse para incluir ROI
+    #if led_centers is None:
+     #   led_centers = detectar_leds_por_brillo(frame)  # podría también modificarse para incluir ROI
 
     if led_centers is not None:
         # Validaciones geométricas más estrictas
         if not (es_cuadrado_valido(led_centers, tolerancia_mm=10) and
-                validar_angulos_cuadrado(led_centers, tol=15) and
+                #validar_angulos_cuadrado(led_centers, tol=15) and
                 validar_escala_cuadrado(led_centers, escala_mm=20, tol_px=15)):
             led_centers = None  # Rechazar detección
 
@@ -282,8 +284,9 @@ while True:
 
         if success:
             # Dibujar LEDs detectados
-            colores_bgr = [(0, 255, 0), (0, 255, 0), (0, 0, 255), (0, 0, 180)]
-            # Verde1, Verde2, Rojo1, Rojo2
+            colores_bgr = [(0, 255, 0), (0, 255, 0), (255, 0, 0), (200, 0, 0)]
+            # Verde1, Verde2, Azul1, Azul2
+
             for (x, y), color in zip(led_centers, colores_bgr):
                 if np.isfinite(x) and np.isfinite(y):
                     cv2.circle(frame, (int(x), int(y)), 6, color, -1)

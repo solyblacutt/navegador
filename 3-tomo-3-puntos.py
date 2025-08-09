@@ -76,7 +76,7 @@ while True:
             # Calcular el centroide 3D y mostrarlo
             centroide_3d = np.mean(objp, axis=0).reshape(1, 3)
             centroide_camara = (cv2.Rodrigues(rvecs)[0] @ centroide_3d.T + tvecs).T[0]
-            punzon_obj = np.array([[-50, 10, 0]], dtype=np.float32)
+            punzon_obj = np.array([[-10, 10, 0]], dtype=np.float32)
             punzon_camara = (cv2.Rodrigues(rvecs)[0] @ punzon_obj.T + tvecs).T[0]
 
             # Dibujar centro proyectado
