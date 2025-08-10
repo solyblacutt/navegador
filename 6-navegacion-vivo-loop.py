@@ -13,11 +13,17 @@ import os
 # Dimensión física del patrón (mm)
 PATTERN_SIZE_MM = 40.0
 
-# Matriz intrínseca y coeficientes de distorsión de la cámara
-mtx = np.array([[2992.45904, 0, 1489.42745],
-                [0, 2979.52349, 2003.95063],
-                [0, 0, 1]], dtype=np.float32)
-dist = np.array([0.2433, -1.2952, -0.0025, -0.0020, 2.41], dtype=np.float32)
+# Cargar el archivo .npz
+data = np.load('B.npz')
+# Acceder a los arrays guardados
+mtx = data['mtx']
+dist = data['dist']
+rvecs = data['rvecs']
+tvecs = data['tvecs']
+
+IP   = "192.168.0.91"
+PORT = "4747"
+URL  = f"http://{IP}:{PORT}/video"   # stream MJPEG de DroidCam
 
 # Cuadrado objeto (en mm)
 objp = (np.array([[0, 0, 0],
@@ -88,7 +94,8 @@ vis.update_renderer()
 prev_T_model = np.eye(4)
 
 # ------------------- Captura de vídeo -------------------
-cap = cv2.VideoCapture(0)
+#cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(URL)
 if not cap.isOpened():
     raise RuntimeError("No se pudo abrir la cámara")
 

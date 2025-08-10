@@ -6,15 +6,29 @@ import numpy as np
 
 # --- Parámetros de la cámara y objeto --- 20 mm
 objp = np.array([[0, 0, 0],
-                 [20, 0, 0],
-                 [20, 20, 0],
-                 [0, 20, 0]], dtype=np.float32)
-
+                 [150, 0, 0],
+                 [150, 150, 0],
+                 [0, 150, 0]], dtype=np.float32)
+"""
 mtx = np.array([[1.23994321e+03, 0.00000000e+00, 9.42066048e+02],
  [0.00000000e+00, 1.24162269e+03, 5.16545687e+02],
  [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]], dtype=np.float32)
 
 dist = np.array([ 0.02489004,  0.12455246, -0.01055148,  0.00068239,  0.14485304], dtype=np.float32)
+"""
+
+# Cargar el archivo .npz
+data = np.load('B.npz')
+# Acceder a los arrays guardados
+mtx = data['mtx']
+dist = data['dist']
+rvecs = data['rvecs']
+tvecs = data['tvecs']
+
+IP   = "192.168.0.91"
+PORT = "4747"
+URL  = f"http://{IP}:{PORT}/video"   # stream MJPEG de DroidCam
+
 
 # --- Almacenamieto de puntos seleccionados ---
 puntos_guardados = []
@@ -47,10 +61,11 @@ def detectar_leds_automaticamente(imagen):
     return leds
 
 # --- Captura de video ---
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(URL)
+#cap = cv2.VideoCapture(0)
 
 if not cap.isOpened():
-    print("No se pudo abrir la cámara")
+    print("No se pudo abrir la cámara DroidCam")
     exit()
 
 print("Presioná 'g' para guardar el punto actual")
@@ -76,7 +91,7 @@ while True:
             # Calcular el centroide 3D y mostrarlo
             centroide_3d = np.mean(objp, axis=0).reshape(1, 3)
             centroide_camara = (cv2.Rodrigues(rvecs)[0] @ centroide_3d.T + tvecs).T[0]
-            punzon_obj = np.array([[-10, 10, 0]], dtype=np.float32)
+            punzon_obj = np.array([[-100, 100, 0]], dtype=np.float32)
             punzon_camara = (cv2.Rodrigues(rvecs)[0] @ punzon_obj.T + tvecs).T[0]
 
             # Dibujar centro proyectado
@@ -101,8 +116,8 @@ while True:
 
     if key == ord('g'):
         if led_centers is not None and ret:
-            puntos_guardados.append(centroide_camara.tolist())
-            print(f"Punto guardado: {centroide_camara}")
+            puntos_guardados.append(punzon_camara.tolist()) # ES PUNZON?CAMARA A GUARDARRRR
+            print(f"Punto guardado: {punzon_camara}")
         else:
             print("No se pudo guardar el punto: detección inválida")
 

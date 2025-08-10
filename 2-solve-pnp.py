@@ -14,12 +14,15 @@ objp = np.array([[0, 0, 0],
                  [0, 2, 0]], dtype=np.float32)
 
 
-# parametros intrinsecos de la camara obtenidos de otra clase calibracion
+# parametros intrinsecos de la camara de
 mtx = np.array([[1.23994321e+03, 0.00000000e+00, 9.42066048e+02],
  [0.00000000e+00, 1.24162269e+03, 5.16545687e+02],
  [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]], dtype=np.float32)
 
 dist = np.array([ 0.02489004,  0.12455246, -0.01055148,  0.00068239,  0.14485304], dtype=np.float32)
+
+
+
 """
 # creo metodo para detectar leds x contraste
 # --- FUNCIÓN PARA DETECTAR LOS LEDS AUTOMÁTICAMENTE ---
