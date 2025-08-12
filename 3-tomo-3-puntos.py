@@ -118,6 +118,8 @@ while True:
         if led_centers is not None and ret:
             puntos_guardados.append(punzon_camara.tolist()) # ES PUNZON?CAMARA A GUARDARRRR
             print(f"Punto guardado: {punzon_camara}")
+            print(rvecs)
+            print(tvecs)
         else:
             print("No se pudo guardar el punto: detección inválida")
 

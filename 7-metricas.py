@@ -11,6 +11,7 @@ def rmse_reproyeccion(objp, imgp, rvec, tvec, K, dist):
     return float(np.sqrt((e**2).mean())), e  # RMSE, errores individuales
 
 # ---------- FRE / TRE ----------
+# FRE > uso ptos anato y pntos modelo del REGISTRO
 def fre(pts_mundo, pts_modelo, R, t):
     """
     pts_mundo: Nx3 medidos con tu punzón (sistema "mundo/paciente")
@@ -23,15 +24,17 @@ def fre(pts_mundo, pts_modelo, R, t):
     e = np.linalg.norm(pred - B, axis=1)
     return float(np.sqrt((e**2).mean())), e
 
+
+# TRE > uso R y t generados en FRE con punto tomado de anato y dibujo pto en el modelo
 def tre(pts_mundo_test, pts_modelo_test, R, t):
     return fre(pts_mundo_test, pts_modelo_test, R, t)
-
+"""
 # ---------- Precisión (repeatability) del tip ----------
 def precision_tip(poses_tip_3D):
-    """
+    
     poses_tip_3D: Mx3 (múltiples mediciones del tip sobre un objetivo estático).
     Devuelve std_xyz (mm) y std_radial (mm).
-    """
+    
     P = np.asarray(poses_tip_3D, float)
     mu = P.mean(0)
     dif = P - mu
@@ -41,9 +44,8 @@ def precision_tip(poses_tip_3D):
 
 # ---------- Detección: precisión/recall/exactitud ----------
 def metricas_deteccion(pred_pts, gt_pts, tol_px=5.0):
-    """
+    
     pred_pts, gt_pts: listas de (x,y). Match greedy por distancia < tol.
-    """
     pred = np.array(pred_pts, float) if len(pred_pts)>0 else np.zeros((0,2))
     gt   = np.array(gt_pts, float)   if len(gt_pts)>0 else np.zeros((0,2))
     if len(gt)==0 and len(pred)==0:
@@ -64,6 +66,7 @@ def metricas_deteccion(pred_pts, gt_pts, tol_px=5.0):
     denom = TP+FP+FN
     accuracy = TP/denom if denom>0 else 0.0
     return dict(precision=precision, recall=recall, accuracy=accuracy, TP=TP, FP=FP, FN=FN)
+"""
 
 # ---------- Dice (2D o 3D) ----------
 def dice_coefficient(mask_pred, mask_gt):
@@ -76,3 +79,51 @@ def dice_coefficient(mask_pred, mask_gt):
     if s == 0:
         return 1.0
     return 2.0*inter/s
+
+
+#-----------------------------
+
+puntos_mundo = [[-105.435,83.532,-140.527],
+[-113.563,52.563,-138.513],
+[-74.543,79.356,-246.942]]
+
+puntos_modelo = [[-99.01024627685547,62.421653747558594,-165.8543701171875],
+[-106.19417572021484,39.02788543701172,-166.59251403808594],
+[-66.40510559082031,58.021236419677734,-224.09645080566406]]
+
+rvecs = np.array([1.72797138, 1.81628202, 2.26308698])
+# tvecs = [[-20.38184396],
+#  [-25.25523136],
+#  [ 47.66751124]]
+
+
+
+def rigid_fit(A, B):
+    A = np.asarray(A, float); B = np.asarray(B, float)
+    muA, muB = A.mean(0), B.mean(0)
+    A0, B0 = A - muA, B - muB
+    U, S, Vt = np.linalg.svd(A0.T @ B0)
+    R = Vt.T @ U.T
+    if np.linalg.det(R) < 0:  # asegurar rotación propia
+        Vt[-1] *= -1
+        R = Vt.T @ U.T
+    t = muB - R @ muA
+    return R, t
+
+R_mc, t_mc = rigid_fit(puntos_mundo, puntos_modelo)  # modelo ← cámara (o el marco que uses)
+
+
+
+
+# Cargar el archivo .npz
+data = np.load('B.npz')
+# Acceder a los arrays guardados
+mtx = data['mtx']
+dist = data['dist']
+#rvecs = data['rvecs']
+tvecs = np.array(data['tvecs'])
+
+R, _ = cv2.Rodrigues(rvecs)
+
+fre_inicial = fre(puntos_mundo,puntos_modelo,R_mc,t_mc)
+print(fre_inicial)
