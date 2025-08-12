@@ -4,7 +4,7 @@ import numpy as np
 # este es el codigo general que deberia correrse para marcar un punto de la anatomia del paciente y guardarlos
 # para su procesamiento posterior en 5-registro-3D.py
 
-# --- Parámetros de la cámara y objeto --- 20 mm
+# --- Parámetros de la cámara y objeto --- 150 mm
 objp = np.array([[0, 0, 0],
                  [150, 0, 0],
                  [150, 150, 0],

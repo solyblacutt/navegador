@@ -5,25 +5,32 @@ import os
 # EN CONSTRUCCION - archivo general, son las bases del video en loop
 
 # --- CONFIGURACIÓN ---
-carpeta_imagenes = "trash/pnp/leds"  # nombre de la carpeta con las imágenes
+carpeta_imagenes = "pnpCuerpoRigido"  # nombre de la carpeta con las imágenes
 
 # coordenadas 3d conocidas de las LEDs en el sistema del objeto
 objp = np.array([[0, 0, 0],
-                 [2, 0, 0],
-                 [2, 2, 0],
-                 [0, 2, 0]], dtype=np.float32)
+                 [150, 0, 0],
+                 [150, 150, 0],
+                 [0, 150, 0]], dtype=np.float32)
 
 
-# parametros intrinsecos de la camara de
+"""# parametros intrinsecos de la camara de
 mtx = np.array([[1.23994321e+03, 0.00000000e+00, 9.42066048e+02],
  [0.00000000e+00, 1.24162269e+03, 5.16545687e+02],
  [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]], dtype=np.float32)
 
 dist = np.array([ 0.02489004,  0.12455246, -0.01055148,  0.00068239,  0.14485304], dtype=np.float32)
-
-
-
 """
+# Cargar el archivo .npz
+data = np.load('B.npz')
+# Acceder a los arrays guardados
+mtx = data['mtx']
+dist = data['dist']
+rvecs = data['rvecs']
+tvecs = data['tvecs']
+
+
+
 # creo metodo para detectar leds x contraste
 # --- FUNCIÓN PARA DETECTAR LOS LEDS AUTOMÁTICAMENTE ---
 def detectar_leds_automaticamente(imagen):
@@ -56,7 +63,7 @@ def detectar_leds_automaticamente(imagen):
 
 
 
-"""
+
 
 # ---------- rangos HSV de colores ----------
 R_H_LOW  = np.array([  0,  80, 120])   # rojo: zona baja   H 0-10
