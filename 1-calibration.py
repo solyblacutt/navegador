@@ -1,73 +1,150 @@
 import numpy as np
 import cv2 as cv
 import glob
+import os
 
-# Criterios de terminación para cornerSubPix
-criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+# ------------------ Parámetros de patrón ------------------
+BOARD_SIZE = (8, 6)          # columnas x filas de esquinas internas
+SQUARE_SIZE = 1.0            # unidad arbitraria (mm si querés); afecta tvec pero no el RMSE en px
 
-# Puntos del patrón 3D (en el mundo real)
-objp = np.zeros((6 * 8, 3), np.float32)
-objp[:, :2] = np.mgrid[0:8, 0:6].T.reshape(-1, 2)
+# ------------------ Criterios de cornerSubPix ------------------
+criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 1e-3)
 
-# Listas para almacenar puntos 3D y 2D
-objpoints = []  # puntos 3D reales
-imgpoints = []  # puntos 2D detectados en las imágenes
+# ------------------ Función de estadísticas de reproyección ------------------
+def reproj_stats(objpoints, imgpoints, rvecs, tvecs, K, dist):
+    per_img_rmse = []
+    per_img_n = []
+    per_point_errors = []
 
-# Cargar todas las imágenes de calibración
+    for i in range(len(objpoints)):
+        objp = np.asarray(objpoints[i], np.float32)
+        imgp = np.asarray(imgpoints[i], np.float32).reshape(-1, 2)  # (N,2)
+
+        proj, _ = cv.projectPoints(objp, rvecs[i], tvecs[i], K, dist)
+        proj = proj.reshape(-1, 2)
+
+        e = np.linalg.norm(proj - imgp, axis=1)  # errores puntuales (px)
+        per_point_errors.append(e)
+        per_img_rmse.append(float(np.sqrt(np.mean(e**2))))
+        per_img_n.append(len(e))
+
+    all_e = np.concatenate(per_point_errors) if len(per_point_errors) else np.array([], dtype=float)
+    rmse_global = float(np.sqrt(np.mean(all_e**2))) if all_e.size else np.nan  # ponderado por puntos
+    rmse_prom_img = float(np.mean(per_img_rmse)) if per_img_rmse else np.nan   # promedio no ponderado
+    p95 = float(np.percentile(all_e, 95)) if all_e.size else np.nan
+    emax = float(np.max(all_e)) if all_e.size else np.nan
+
+    return {
+        "rmse_global": rmse_global,
+        "rmse_promedio_imagen": rmse_prom_img,
+        "rmse_por_imagen": per_img_rmse,
+        "p95_error_puntual": p95,
+        "max_error_puntual": emax,
+        "n_puntos_por_imagen": per_img_n
+    }
+
+# ------------------ Puntos 3D del patrón (una vez) ------------------
+# OJO: usa SQUARE_SIZE para que las tvec queden en mm si lo necesitás luego
+objp_single = np.zeros((BOARD_SIZE[0] * BOARD_SIZE[1], 3), np.float32)
+objp_single[:, :2] = np.mgrid[0:BOARD_SIZE[0], 0:BOARD_SIZE[1]].T.reshape(-1, 2)
+objp_single *= SQUARE_SIZE
+
+# ------------------ Acumuladores ------------------
+objpoints = []     # puntos 3D reales (por imagen)
+imgpoints = []     # puntos 2D detectados (por imagen)
+used_filenames = []  # para mapear RMSE ↔ archivo
+
+# ------------------ Cargar imágenes ------------------
 images = glob.glob('calibrationCeluSol/*.jpg')
+images.sort()
+if not images:
+    raise RuntimeError("No se encontraron imágenes en 'calibrationCeluSol/*.jpg'.")
 
 for fname in images:
     img = cv.imread(fname)
+    if img is None:
+        print(f"Advertencia: no se pudo leer {fname}, se omite.")
+        continue
+
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
+    # Buscar esquinas del tablero
+    flags = cv.CALIB_CB_ADAPTIVE_THRESH + cv.CALIB_CB_NORMALIZE_IMAGE + cv.CALIB_CB_FAST_CHECK
+    ret, corners = cv.findChessboardCorners(gray, BOARD_SIZE, flags)
 
-    # Buscar esquinas del patrón de tablero de ajedrez 8x6
-    ret, corners = cv.findChessboardCorners(gray, (8, 6), None)
+    if not ret:
+        # Intento sin FAST_CHECK por si falló
+        ret, corners = cv.findChessboardCorners(gray, BOARD_SIZE)
 
     if ret:
-        objpoints.append(objp)
+        # Refinamiento subpíxel
         corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+
+        objpoints.append(objp_single.copy())
         imgpoints.append(corners2)
+        used_filenames.append(os.path.basename(fname))
+    else:
+        print(f"Tablero NO detectado en: {fname}")
 
-        # Dibujar las esquinas detectadas
-        # cv.drawChessboardCorners(img, (8, 6), corners2, ret)
-        # cv.imshow('Esquinas detectadas', img)
-        # cv.waitKey(500)
+if not objpoints:
+    raise RuntimeError("No se detectó ningún tablero en las imágenes.")
 
-# Calibración de la cámara
-ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+# ------------------ Calibración ------------------
+image_size = gray.shape[::-1]  # (w, h)
+ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(
+    objpoints, imgpoints, image_size, None, None
+)
 
-print('Matriz de la cámara (mtx):\n', mtx)
-print('Coeficientes de distorsión (dist):\n', dist)
-print('Vectores de rotación (rvecs):\n', rvecs)
+print("\n=== Resultados de calibración ===")
+print('RMS (calibrateCamera ret): {:.6f} px'.format(ret))
+print('Matriz de la cámara (K):\n', mtx)
+print('Coeficientes de distorsión (dist):\n', dist.ravel())
 
-# Leer imagen nueva para refinar calibración
-img = cv.imread('camara celu sol.jpg')
-h, w = img.shape[:2]
-newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
+# ------------------ Estadísticas de reproyección propias ------------------
+stats = reproj_stats(objpoints, imgpoints, rvecs, tvecs, mtx, dist)
 
-print('Matriz nueva de la cámara (newcameramtx):\n', newcameramtx)
+print("\n=== Estadísticas de reproyección (todas las imágenes) ===")
+print("RMSE global (ponderado por puntos): {:.6f} px".format(stats['rmse_global']))
+print("RMSE promedio por imagen          : {:.6f} px".format(stats['rmse_promedio_imagen']))
+print("P95 error puntual                 : {:.6f} px".format(stats['p95_error_puntual']))
+print("Máximo error puntual              : {:.6f} px".format(stats['max_error_puntual']))
 
-# Undistorsionar usando remap (método 2)
-mapx, mapy = cv.initUndistortRectifyMap(mtx, dist, None, newcameramtx, (w, h), 5)
-dst = cv.remap(img, mapx, mapy, cv.INTER_LINEAR)
+# Top 5 peores imágenes (por RMSE)
+rmse_list = stats['rmse_por_imagen']
+order = np.argsort(rmse_list)[::-1]  # descendente
+top = min(5, len(order))
+print("\nPeores {} imágenes por RMSE:".format(top))
+for rank in range(top):
+    i = order[rank]
+    fname = used_filenames[i] if i < len(used_filenames) else f"img_{i}"
+    print("  #{:<2d} {:<30s}  RMSE={:.3f} px   Npts={}".format(
+        rank+1, fname, rmse_list[i], stats['n_puntos_por_imagen'][i]
+    ))
 
-# Recortar ROI
-x, y, w, h = roi
-dst = dst[y:y + h, x:x + w]
-cv.imwrite('trash/calibresult.png', dst)
+# ------------------ Undistorsión (opcional, demo) ------------------
+demo_path = 'camara celu sol.jpg'
+if os.path.exists(demo_path):
+    img_demo = cv.imread(demo_path)
+    if img_demo is not None:
+        h, w = img_demo.shape[:2]
+        newcameramtx, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
+        mapx, mapy = cv.initUndistortRectifyMap(mtx, dist, None, newcameramtx, (w, h), cv.CV_32FC1)
+        dst = cv.remap(img_demo, mapx, mapy, cv.INTER_LINEAR)
 
-# Calcular error de reproyección
-mean_error = 0
-for i in range(len(objpoints)):
-    imgpoints2, _ = cv.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
-    error = cv.norm(imgpoints[i], imgpoints2, cv.NORM_L2) / len(imgpoints2)
-    mean_error += error
+        x, y, w2, h2 = roi
+        if w2 > 0 and h2 > 0:
+            dst = dst[y:y + h2, x:x + w2]
+        os.makedirs('trash', exist_ok=True)
+        cv.imwrite('trash/calibresult.png', dst)
+        print("\nImagen de undistorsión guardada en: trash/calibresult.png")
+    else:
+        print("\nAdvertencia: no se pudo leer la imagen de demo para undistorsión.")
+else:
+    print("\nNota: omito undistorsión de demo (no se encontró 'camara celu sol.jpg').")
 
-print("Error total de reproyección: {:.6f}".format(mean_error / len(objpoints)))
-
-# Guardar resultados para uso posterior en estimación de pose
+# ------------------ Guardar parámetros ------------------
 np.savez('B.npz', mtx=mtx, dist=dist, rvecs=rvecs, tvecs=tvecs)
+print("\nParámetros guardados en B.npz")
 
 
 """　Matriz de camara del celu:
@@ -203,7 +280,7 @@ Error total de reproyección: 0.113960
 #--------------------------------------------------------------------------------------------------------------
 
 
-"""
+""" CELU SOL IPHONE RPO
 Matriz de la cámara (mtx):
  [[626.61530077   0.         347.84841745]
  [  0.         628.50695348 367.25298278]
@@ -297,3 +374,4 @@ Matriz nueva de la cámara (newcameramtx):
  [  0.           0.           1.        ]]
 Error total de reproyección: 0.205710
 """
+
